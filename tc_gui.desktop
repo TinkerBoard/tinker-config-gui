@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Tinker Board Configuration
+Comment=Configuration Tool of Tinker Board
+Exec=sudo tc_gui
+StartupNotify=true
+Categories=Settings;DesktopSettings;
