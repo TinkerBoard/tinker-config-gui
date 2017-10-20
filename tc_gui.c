@@ -1,4 +1,4 @@
-/* NOTE raspi-config nonint functions obey sh return codes - 0 is in general success / yes / selected, 1 is failed / no / not selected */
+/* NOTE tinker-config nonint functions obey sh return codes - 0 is in general success / yes / selected, 1 is failed / no / not selected */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -43,10 +43,12 @@
 #define SET_SSH         "tinker-config nonint do_ssh %d"
 #define GET_VNC         "tinker-config nonint get_vnc"
 #define SET_VNC         "tinker-config nonint do_vnc %d"
-#define GET_SPI         "tinker-config nonint get_spi"
-#define SET_SPI         "tinker-config nonint do_spi %d"
-#define GET_I2C         "tinker-config nonint get_i2c"
-#define SET_I2C         "tinker-config nonint do_i2c %d"
+#define GET_SPI         "tinker-config nonint get_spi %d"
+#define SET_SPI         "tinker-config nonint do_single_spi %d %d"
+#define GET_I2C         "tinker-config nonint get_i2c %d"
+#define SET_I2C         "tinker-config nonint do_single_i2c %d %d"
+#define GET_UART        "tinker-config nonint get_uart %d"
+#define SET_UART        "tinker-config nonint do_single_uart %d %d"
 #define GET_SERIAL      "tinker-config nonint get_serial"
 #define GET_SERIALHW    "tinker-config nonint get_serial_hw"
 #define SET_SERIAL      "tinker-config nonint do_serial %d"
@@ -68,18 +70,22 @@
 #define GET_WIFI_CTRY   "tinker-config nonint get_wifi_country"
 #define SET_WIFI_CTRY   "tinker-config nonint do_wifi_country %s"
 #define CHANGE_PASSWD   "(echo \"%s\" ; echo \"%s\") | passwd $SUDO_USER"
+#define CHANGE_VNC_PASSWD   "tinker-config nonint set_vnc_passwd %s"
+#define VNC_PASSWD_EXIST    "[ -e $HOME/.vnc/passwd ]" //0 = exist, 1 = not exist
 
 #define PACKAGE_DATA_DIR "/usr/share/tc_gui/"
 
 /* Controls */
 
-static GObject *expandfs_btn, *passwd_btn, *res_btn, *locale_btn, *timezone_btn, *keyboard_btn, *wifi_btn;
-static GObject *boot_desktop_rb, *boot_cli_rb, *camera_on_rb, *camera_off_rb;
-static GObject *overscan_on_rb, *overscan_off_rb, *ssh_on_rb, *ssh_off_rb, *rgpio_on_rb, *rgpio_off_rb, *vnc_on_rb, *vnc_off_rb;
-static GObject *spi_on_rb, *spi_off_rb, *i2c_on_rb, *i2c_off_rb, *serial_on_rb, *serial_off_rb, *onewire_on_rb, *onewire_off_rb;
+static GObject *expandfs_btn, *passwd_btn, *vncpasswd_btn, *res_btn, *locale_btn, *timezone_btn, *keyboard_btn, *wifi_btn;
+static GObject *spi_btn, *i2c_btn, *uart_btn;
+static GObject *boot_desktop_rb, *boot_cli_rb;
+static GObject *overscan_on_rb, *overscan_off_rb, *ssh_on_rb, *ssh_off_rb, *vnc_on_rb, *vnc_off_rb;
+static GObject *serial_on_rb, *serial_off_rb, *onewire_on_rb, *onewire_off_rb;
 static GObject *autologin_cb, *netwait_cb, *splash_on_rb, *splash_off_rb;
 static GObject *overclock_cb, *memsplit_sb, *hostname_tb;
 static GObject *pwentry1_tb, *pwentry2_tb, *pwentry3_tb, *pwok_btn;
+static GObject *vncpwentry1_tb, *vncpwentry2_tb, *vncpwentry3_tb, *vncpwok_btn;
 static GObject *rtname_tb, *rtemail_tb, *rtok_btn;
 static GObject *tzarea_cb, *tzloc_cb, *wccountry_cb, *resolution_cb;
 static GObject *loclang_cb, *loccount_cb, *locchar_cb;
@@ -90,7 +96,7 @@ static GtkWidget *main_dlg, *msg_dlg;
 /* Initial values */
 
 static char orig_hostname[128];
-static int orig_boot, orig_overscan, orig_camera, orig_ssh, orig_spi, orig_i2c, orig_serial, orig_splash;
+static int orig_boot, orig_overscan, orig_camera, orig_ssh, orig_serial, orig_splash;
 static int orig_clock, orig_gpumem, orig_autolog, orig_netwait, orig_onewire, orig_rgpio, orig_vnc;
 
 /* Reboot flag set after locale change */
@@ -292,6 +298,221 @@ static void on_change_passwd (GtkButton* btn, gpointer ptr)
     }
     else gtk_widget_destroy (dlg);
     g_object_unref (builder);
+}
+
+/* VNC Password setting */
+
+static void set_vnc_passwd (GtkEntry *entry, gpointer ptr)
+{
+    if (strlen (gtk_entry_get_text (GTK_ENTRY (vncpwentry2_tb))) && strcmp (gtk_entry_get_text (GTK_ENTRY (vncpwentry2_tb)),
+		gtk_entry_get_text (GTK_ENTRY(vncpwentry3_tb))))
+        gtk_widget_set_sensitive (GTK_WIDGET (vncpwok_btn), FALSE);
+    else
+        gtk_widget_set_sensitive (GTK_WIDGET (vncpwok_btn), TRUE);
+}
+
+static void on_change_vnc_passwd (GtkButton* btn, gpointer ptr)
+{
+    GtkBuilder *builder;
+    GtkWidget *dlg;
+    char buffer[128];
+    int res;
+
+    builder = gtk_builder_new ();
+    gtk_builder_add_from_file (builder, PACKAGE_DATA_DIR "tc_gui.ui", NULL);
+    dlg = (GtkWidget *) gtk_builder_get_object (builder, "vncpasswddialog");
+    gtk_window_set_transient_for (GTK_WINDOW (dlg), GTK_WINDOW (main_dlg));
+    vncpwentry2_tb = gtk_builder_get_object (builder, "vncpwentry2");
+    vncpwentry3_tb = gtk_builder_get_object (builder, "vncpwentry3");
+    gtk_entry_set_visibility (GTK_ENTRY (vncpwentry2_tb), FALSE);
+    gtk_entry_set_visibility (GTK_ENTRY (vncpwentry3_tb), FALSE);
+    g_signal_connect (vncpwentry2_tb, "changed", G_CALLBACK (set_vnc_passwd), NULL);
+    g_signal_connect (vncpwentry3_tb, "changed", G_CALLBACK (set_vnc_passwd), NULL);
+    vncpwok_btn = gtk_builder_get_object (builder, "vncpasswdok");
+    gtk_widget_set_sensitive (GTK_WIDGET (vncpwok_btn), FALSE);
+
+    if (gtk_dialog_run (GTK_DIALOG (dlg)) == GTK_RESPONSE_OK)
+    {
+        sprintf (buffer, CHANGE_VNC_PASSWD, gtk_entry_get_text (GTK_ENTRY (vncpwentry3_tb)));
+        res = system (buffer);
+        gtk_widget_destroy (dlg);
+		if (res)
+			dlg = (GtkWidget *) gtk_builder_get_object (builder, "pwbaddialog");
+		else
+			dlg = (GtkWidget *) gtk_builder_get_object (builder, "pwokdialog");
+		gtk_window_set_transient_for (GTK_WINDOW (dlg), GTK_WINDOW (main_dlg));
+		gtk_dialog_run (GTK_DIALOG (dlg));
+		gtk_widget_destroy (dlg);
+    }
+    else gtk_widget_destroy (dlg);
+    g_object_unref (builder);
+}
+
+/* SPI setting */
+
+static void on_set_spi (GtkButton* btn, gpointer ptr)
+{
+    GtkBuilder *builder;
+    GtkWidget *dlg;
+    GObject *spi0_on_rb, *spi0_off_rb, *spi2_on_rb, *spi2_off_rb;
+    int orig_spi0, orig_spi2;
+    char buffer[128];
+
+    builder = gtk_builder_new ();
+    gtk_builder_add_from_file (builder, PACKAGE_DATA_DIR "tc_gui.ui", NULL);
+    dlg = (GtkWidget *) gtk_builder_get_object (builder, "spidialog");
+    gtk_window_set_transient_for (GTK_WINDOW (dlg), GTK_WINDOW (main_dlg));
+
+    spi0_on_rb = gtk_builder_get_object (builder, "rb_spi0_on");
+    spi0_off_rb = gtk_builder_get_object (builder, "rb_spi0_off");
+    sprintf (buffer, GET_SPI, 0);
+    if (orig_spi0 = get_status (buffer)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (spi0_off_rb), TRUE);
+    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (spi0_on_rb), TRUE);
+
+    spi2_on_rb = gtk_builder_get_object (builder, "rb_spi2_on");
+    spi2_off_rb = gtk_builder_get_object (builder, "rb_spi2_off");
+    sprintf (buffer, GET_SPI, 2);
+    if (orig_spi2 = get_status (buffer)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (spi2_off_rb), TRUE);
+    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (spi2_on_rb), TRUE);
+
+    g_object_unref (builder);
+    if (gtk_dialog_run (GTK_DIALOG (dlg)) == GTK_RESPONSE_OK)
+    {
+        if (orig_spi0 != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (spi0_off_rb)))
+        {
+            sprintf (buffer, SET_SPI, 0, (1 - orig_spi0));
+            system (buffer);
+            needs_reboot = 1;
+        }
+
+        if (orig_spi2 != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (spi2_off_rb)))
+        {
+            sprintf (buffer, SET_SPI, 2, (1 - orig_spi2));
+            system (buffer);
+            needs_reboot = 1;
+        }
+    }
+    gtk_widget_destroy (dlg);
+}
+
+/* I2C setting */
+
+static void on_set_i2c (GtkButton* btn, gpointer ptr)
+{
+    GtkBuilder *builder;
+    GtkWidget *dlg;
+    GObject *i2c1_on_rb, *i2c1_off_rb, *i2c4_on_rb, *i2c4_off_rb;
+    int orig_i2c1, orig_i2c4;
+    char buffer[128];
+
+    builder = gtk_builder_new ();
+    gtk_builder_add_from_file (builder, PACKAGE_DATA_DIR "tc_gui.ui", NULL);
+    dlg = (GtkWidget *) gtk_builder_get_object (builder, "i2cdialog");
+    gtk_window_set_transient_for (GTK_WINDOW (dlg), GTK_WINDOW (main_dlg));
+
+    i2c1_on_rb = gtk_builder_get_object (builder, "rb_i2c1_on");
+    i2c1_off_rb = gtk_builder_get_object (builder, "rb_i2c1_off");
+    sprintf (buffer, GET_I2C, 1);
+    if (orig_i2c1 = get_status (buffer)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (i2c1_off_rb), TRUE);
+    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (i2c1_on_rb), TRUE);
+
+    i2c4_on_rb = gtk_builder_get_object (builder, "rb_i2c4_on");
+    i2c4_off_rb = gtk_builder_get_object (builder, "rb_i2c4_off");
+    sprintf (buffer, GET_I2C, 4);
+    if (orig_i2c4 = get_status (buffer)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (i2c4_off_rb), TRUE);
+    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (i2c4_on_rb), TRUE);
+
+    g_object_unref (builder);
+    if (gtk_dialog_run (GTK_DIALOG (dlg)) == GTK_RESPONSE_OK)
+    {
+        if (orig_i2c1 != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (i2c1_off_rb)))
+        {
+            sprintf (buffer, SET_I2C, 1, (1 - orig_i2c1));
+            system (buffer);
+            needs_reboot = 1;
+        }
+
+        if (orig_i2c4 != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (i2c4_off_rb)))
+        {
+            sprintf (buffer, SET_I2C, 4, (1 - orig_i2c4));
+            system (buffer);
+            needs_reboot = 1;
+        }
+    }
+    gtk_widget_destroy (dlg);
+}
+
+/* UART setting */
+
+static void on_set_uart (GtkButton* btn, gpointer ptr)
+{
+    GtkBuilder *builder;
+    GtkWidget *dlg;
+    GObject *uart1_on_rb, *uart1_off_rb, *uart2_on_rb, *uart2_off_rb, *uart3_on_rb, *uart3_off_rb, *uart4_on_rb, *uart4_off_rb;
+    int orig_uart1, orig_uart2, orig_uart3, orig_uart4;
+    char buffer[128];
+
+    builder = gtk_builder_new ();
+    gtk_builder_add_from_file (builder, PACKAGE_DATA_DIR "tc_gui.ui", NULL);
+    dlg = (GtkWidget *) gtk_builder_get_object (builder, "uartdialog");
+    gtk_window_set_transient_for (GTK_WINDOW (dlg), GTK_WINDOW (main_dlg));
+
+    uart1_on_rb = gtk_builder_get_object (builder, "rb_uart1_on");
+    uart1_off_rb = gtk_builder_get_object (builder, "rb_uart1_off");
+    sprintf (buffer, GET_UART, 1);
+    if (orig_uart1 = get_status (buffer)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (uart1_off_rb), TRUE);
+    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (uart1_on_rb), TRUE);
+
+    uart2_on_rb = gtk_builder_get_object (builder, "rb_uart2_on");
+    uart2_off_rb = gtk_builder_get_object (builder, "rb_uart2_off");
+    sprintf (buffer, GET_UART, 2);
+    if (orig_uart2 = get_status (buffer)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (uart2_off_rb), TRUE);
+    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (uart2_on_rb), TRUE);
+
+    uart3_on_rb = gtk_builder_get_object (builder, "rb_uart3_on");
+    uart3_off_rb = gtk_builder_get_object (builder, "rb_uart3_off");
+    sprintf (buffer, GET_UART, 3);
+    if (orig_uart3 = get_status (buffer)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (uart3_off_rb), TRUE);
+    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (uart3_on_rb), TRUE);
+
+    uart4_on_rb = gtk_builder_get_object (builder, "rb_uart4_on");
+    uart4_off_rb = gtk_builder_get_object (builder, "rb_uart4_off");
+    sprintf (buffer, GET_UART, 4);
+    if (orig_uart4 = get_status (buffer)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (uart4_off_rb), TRUE);
+    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (uart4_on_rb), TRUE);
+
+    g_object_unref (builder);
+    if (gtk_dialog_run (GTK_DIALOG (dlg)) == GTK_RESPONSE_OK)
+    {
+        if (orig_uart1 != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (uart1_off_rb)))
+        {
+            sprintf (buffer, SET_UART, 1, (1 - orig_uart1));
+            system (buffer);
+            needs_reboot = 1;
+        }
+
+        if (orig_uart2 != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (uart2_off_rb)))
+        {
+            sprintf (buffer, SET_UART, 2, (1 - orig_uart2));
+            system (buffer);
+            needs_reboot = 1;
+        }
+
+        if (orig_uart3 != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (uart3_off_rb)))
+        {
+            sprintf (buffer, SET_UART, 3, (1 - orig_uart3));
+            system (buffer);
+            needs_reboot = 1;
+        }
+
+        if (orig_uart4 != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (uart4_off_rb)))
+        {
+            sprintf (buffer, SET_UART, 4, (1 - orig_uart4));
+            system (buffer);
+            needs_reboot = 1;
+        }
+    }
+    gtk_widget_destroy (dlg);
 }
 
 /* Locale setting */
@@ -929,13 +1150,6 @@ static int process_changes (void)
         system (buffer);
     }
 
-    if (orig_camera != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (camera_off_rb)))
-    {
-        sprintf (buffer, SET_CAMERA, (1 - orig_camera));
-        system (buffer);
-        reboot = 1;
-    }
-
     if (orig_overscan != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (overscan_off_rb)))
     {
         sprintf (buffer, SET_OVERSCAN, (1 - orig_overscan));
@@ -955,18 +1169,6 @@ static int process_changes (void)
         system (buffer);
     }
 
-    if (orig_spi != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (spi_off_rb)))
-    {
-        sprintf (buffer, SET_SPI, (1 - orig_spi));
-        system (buffer);
-    }
-
-    if (orig_i2c != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (i2c_off_rb)))
-    {
-        sprintf (buffer, SET_I2C, (1 - orig_i2c));
-        system (buffer);
-    }
-
     if (orig_serial != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (serial_off_rb)))
     {
         sprintf (buffer, SET_SERIAL, (1 - orig_serial));
@@ -981,12 +1183,6 @@ static int process_changes (void)
         reboot = 1;
     }
 
-    if (orig_rgpio != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (rgpio_off_rb)))
-    {
-        sprintf (buffer, SET_RGPIO, (1 - orig_rgpio));
-        system (buffer);
-    }
-
     if (strcmp (orig_hostname, gtk_entry_get_text (GTK_ENTRY (hostname_tb))))
     {
         sprintf (buffer, SET_HOSTNAME, gtk_entry_get_text (GTK_ENTRY (hostname_tb)));
@@ -994,50 +1190,24 @@ static int process_changes (void)
         reboot = 1;
     }
 
-    if (orig_gpumem != gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (memsplit_sb)))
+    if (orig_clock != gtk_combo_box_get_active (GTK_COMBO_BOX (overclock_cb)))
     {
-        sprintf (buffer, SET_GPU_MEM, gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON (memsplit_sb)));
+        switch (gtk_combo_box_get_active (GTK_COMBO_BOX (overclock_cb)))
+        {
+            case 0 :    sprintf (buffer, SET_OVERCLOCK, "None");
+                        break;
+            case 1 :    sprintf (buffer, SET_OVERCLOCK, "Modest");
+                        break;
+            case 2 :    sprintf (buffer, SET_OVERCLOCK, "Medium");
+                        break;
+            case 3 :    sprintf (buffer, SET_OVERCLOCK, "High");
+                        break;
+            case 4 :    sprintf (buffer, SET_OVERCLOCK, "Turbo");
+                        break;
+        }
         system (buffer);
         reboot = 1;
     }
-
-    if (orig_clock != gtk_combo_box_get_active (GTK_COMBO_BOX (overclock_cb)))
-    {
-        //switch (get_status (GET_PI_TYPE))
-        switch (1)
-        {
-            case 1:
-                switch (gtk_combo_box_get_active (GTK_COMBO_BOX (overclock_cb)))
-                {
-                    case 0 :    sprintf (buffer, SET_OVERCLOCK, "None");
-                                break;
-                    case 1 :    sprintf (buffer, SET_OVERCLOCK, "Modest");
-                                break;
-                    case 2 :    sprintf (buffer, SET_OVERCLOCK, "Medium");
-                                break;
-                    case 3 :    sprintf (buffer, SET_OVERCLOCK, "High");
-                                break;
-                    case 4 :    sprintf (buffer, SET_OVERCLOCK, "Turbo");
-                                break;
-                }
-                system (buffer);
-                reboot = 1;
-                break;
-
-            case 2:
-                switch (gtk_combo_box_get_active (GTK_COMBO_BOX (overclock_cb)))
-                {
-                    case 0 :    sprintf (buffer, SET_OVERCLOCK, "None");
-                                break;
-                    case 1 :    sprintf (buffer, SET_OVERCLOCK, "High");
-                                break;
-                }
-                system (buffer);
-                reboot = 1;
-                break;
-        }
-    }
-
     return reboot;
 }
 
@@ -1096,7 +1266,7 @@ int main (int argc, char *argv[])
     builder = gtk_builder_new ();
     gtk_builder_add_from_file (builder, PACKAGE_DATA_DIR "tc_gui.ui", NULL);
 
-    
+    /*
     if (!can_configure ())
     {
         dlg = (GtkWidget *) gtk_builder_get_object (builder, "errordialog");
@@ -1106,12 +1276,16 @@ int main (int argc, char *argv[])
         gtk_widget_destroy (dlg);
         return 0;
     }
-    
+    */
+
     // Set the UI status
     main_dlg = (GtkWidget *) gtk_builder_get_object (builder, "dialog1");
 
     passwd_btn = gtk_builder_get_object (builder, "button_pw");
     g_signal_connect (passwd_btn, "clicked", G_CALLBACK (on_change_passwd), NULL);
+
+    vncpasswd_btn = gtk_builder_get_object (builder, "button_vnc_pw");
+    g_signal_connect (vncpasswd_btn, "clicked", G_CALLBACK (on_change_vnc_passwd), NULL);
 
     locale_btn = gtk_builder_get_object (builder, "button_loc");
     g_signal_connect (locale_btn, "clicked", G_CALLBACK (on_set_locale), NULL);
@@ -1145,38 +1319,41 @@ int main (int argc, char *argv[])
     if (orig_netwait = get_status (GET_BOOT_WAIT)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (netwait_cb), FALSE);
     else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (netwait_cb), TRUE);
 
-    ssh_on_rb = gtk_builder_get_object (builder, "rb_ssh_on");
-    ssh_off_rb = gtk_builder_get_object (builder, "rb_ssh_off");
-    if (orig_ssh = get_status (GET_SSH)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (ssh_off_rb), TRUE);
-    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (ssh_on_rb), TRUE);
-
     hostname_tb = gtk_builder_get_object (builder, "entry_hn");
     get_string (GET_HOSTNAME, orig_hostname);
     gtk_entry_set_text (GTK_ENTRY (hostname_tb), orig_hostname);
 
-
     res_btn = gtk_builder_get_object (builder, "button_res");
     g_signal_connect (res_btn, "clicked", G_CALLBACK (on_set_res), NULL);
-
-    camera_on_rb = gtk_builder_get_object (builder, "rb_cam_on");
-    camera_off_rb = gtk_builder_get_object (builder, "rb_cam_off");
-    if (orig_camera = get_status (GET_CAMERA)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (camera_off_rb), TRUE);
-    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (camera_on_rb), TRUE);
 
     overscan_on_rb = gtk_builder_get_object (builder, "rb_os_on");
     overscan_off_rb = gtk_builder_get_object (builder, "rb_os_off");
     if (orig_overscan = get_status (GET_OVERSCAN)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (overscan_off_rb), TRUE);
     else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (overscan_on_rb), TRUE);
+/*
+    camera_on_rb = gtk_builder_get_object (builder, "rb_cam_on");
+    camera_off_rb = gtk_builder_get_object (builder, "rb_cam_off");
+    if (orig_camera = get_status (GET_CAMERA)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (camera_off_rb), TRUE);
+    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (camera_on_rb), TRUE);
+*/
+    ssh_on_rb = gtk_builder_get_object (builder, "rb_ssh_on");
+    ssh_off_rb = gtk_builder_get_object (builder, "rb_ssh_off");
+    if (orig_ssh = get_status (GET_SSH)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (ssh_off_rb), TRUE);
+    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (ssh_on_rb), TRUE);
 
-    spi_on_rb = gtk_builder_get_object (builder, "rb_spi_on");
-    spi_off_rb = gtk_builder_get_object (builder, "rb_spi_off");
-    if (orig_spi = get_status (GET_SPI)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (spi_off_rb), TRUE);
-    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (spi_on_rb), TRUE);
+    vnc_on_rb = gtk_builder_get_object (builder, "rb_vnc_on");
+    vnc_off_rb = gtk_builder_get_object (builder, "rb_vnc_off");
+    if (orig_vnc = get_status (GET_VNC)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (vnc_off_rb), TRUE);
+    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (vnc_on_rb), TRUE);
 
-    i2c_on_rb = gtk_builder_get_object (builder, "rb_i2c_on");
-    i2c_off_rb = gtk_builder_get_object (builder, "rb_i2c_off");
-    if (orig_i2c = get_status (GET_I2C)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (i2c_off_rb), TRUE);
-    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (i2c_on_rb), TRUE);
+    spi_btn = gtk_builder_get_object (builder, "button_spi");
+    g_signal_connect (spi_btn, "clicked", G_CALLBACK (on_set_spi), NULL);
+
+    i2c_btn = gtk_builder_get_object (builder, "button_i2c");
+    g_signal_connect (i2c_btn, "clicked", G_CALLBACK (on_set_i2c), NULL);
+
+    uart_btn = gtk_builder_get_object (builder, "button_uart");
+    g_signal_connect (uart_btn, "clicked", G_CALLBACK (on_set_uart), NULL);
 
     serial_on_rb = gtk_builder_get_object (builder, "rb_ser_on");
     serial_off_rb = gtk_builder_get_object (builder, "rb_ser_off");
@@ -1187,17 +1364,12 @@ int main (int argc, char *argv[])
     onewire_off_rb = gtk_builder_get_object (builder, "rb_one_off");
     if (orig_onewire = get_status (GET_1WIRE)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (onewire_off_rb), TRUE);
     else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (onewire_on_rb), TRUE);
-
+/*
     rgpio_on_rb = gtk_builder_get_object (builder, "rb_rgp_on");
     rgpio_off_rb = gtk_builder_get_object (builder, "rb_rgp_off");
     if (orig_rgpio = get_status (GET_RGPIO)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (rgpio_off_rb), TRUE);
     else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (rgpio_on_rb), TRUE);
-
-    vnc_on_rb = gtk_builder_get_object (builder, "rb_vnc_on");
-    vnc_off_rb = gtk_builder_get_object (builder, "rb_vnc_off");
-    if (orig_vnc = get_status (GET_VNC)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (vnc_off_rb), TRUE);
-    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (vnc_on_rb), TRUE);
-
+*/
     // disable the buttons if VNC isn't installed
     gboolean enable = TRUE;
     struct stat buf;
@@ -1205,79 +1377,27 @@ int main (int argc, char *argv[])
     gtk_widget_set_sensitive (GTK_WIDGET (vnc_on_rb), enable);
     gtk_widget_set_sensitive (GTK_WIDGET (vnc_off_rb), enable);
 
-    // not support yet ###
-    gtk_widget_set_sensitive (GTK_WIDGET (spi_on_rb), FALSE);
-    gtk_widget_set_sensitive (GTK_WIDGET (spi_off_rb), FALSE);
-
-    gtk_widget_set_sensitive (GTK_WIDGET (i2c_on_rb), FALSE);
-    gtk_widget_set_sensitive (GTK_WIDGET (i2c_off_rb), FALSE);
-
-    gtk_widget_set_sensitive (GTK_WIDGET (rgpio_on_rb), FALSE);
-    gtk_widget_set_sensitive (GTK_WIDGET (rgpio_off_rb), FALSE);
-
-
-    //###
-    //switch (get_status (GET_PI_TYPE))
-    //{
-        
-	    /*
-        case 1:
-            overclock_cb = gtk_builder_get_object (builder, "combo_oc_pi1");
-            switch (get_status (GET_OVERCLOCK))
-            {
-                case 800  : orig_clock = 1;
-                            break;
-                case 900  : orig_clock = 2;
-                            break;
-                case 950  : orig_clock = 3;
-                            break;
-                case 1000 : orig_clock = 4;
-                            break;
-                default   : orig_clock = 0;
-                            break;
-            }
-            gtk_combo_box_set_active (GTK_COMBO_BOX (overclock_cb), orig_clock);
-            gtk_widget_show_all (GTK_WIDGET(gtk_builder_get_object (builder, "hbox31")));
-            gtk_widget_hide_all (GTK_WIDGET(gtk_builder_get_object (builder, "hbox32")));
-            gtk_widget_hide_all (GTK_WIDGET(gtk_builder_get_object (builder, "hbox33")));
+    overclock_cb = gtk_builder_get_object (builder, "combo_oc_pi3");
+    switch (get_status (GET_OVERCLOCK))
+    {
+        case 800  : orig_clock = 1;
             break;
-
-        case 2 :
-            overclock_cb = gtk_builder_get_object (builder, "combo_oc_pi2");
-            switch (get_status (GET_OVERCLOCK))
-            {
-                case 1000 : orig_clock = 1;
-                            break;
-                default   : orig_clock = 0;
-                            break;
-            }
-            gtk_combo_box_set_active (GTK_COMBO_BOX (overclock_cb), orig_clock);
-            gtk_widget_hide_all (GTK_WIDGET (gtk_builder_get_object (builder, "hbox31")));
-            gtk_widget_show_all (GTK_WIDGET (gtk_builder_get_object (builder, "hbox32")));
-            gtk_widget_hide_all (GTK_WIDGET (gtk_builder_get_object (builder, "hbox33")));
+        case 900  : orig_clock = 2;
             break;
-*/
+        case 950  : orig_clock = 3;;
+            break;
+        case 1000 : orig_clock = 4;;
+            break;
+        default   : orig_clock = 0;
+            break;
+    }
+    gtk_combo_box_set_active (GTK_COMBO_BOX (overclock_cb), orig_clock);
+    gtk_widget_show_all (GTK_WIDGET (gtk_builder_get_object (builder, "hbox33")));
 
-     //   default :
-            overclock_cb = gtk_builder_get_object (builder, "combo_oc_pi3");
-            gtk_combo_box_set_active (GTK_COMBO_BOX (overclock_cb), 0);
-            gtk_widget_hide_all (GTK_WIDGET (gtk_builder_get_object (builder, "hbox31")));
-            gtk_widget_hide_all (GTK_WIDGET (gtk_builder_get_object (builder, "hbox32")));
-            gtk_widget_show_all (GTK_WIDGET (gtk_builder_get_object (builder, "hbox33")));
-            gtk_widget_set_sensitive (GTK_WIDGET (overclock_cb), FALSE);
-      //      break;
-   // }
 
     //not support yet ###
     //GtkObject *adj = gtk_adjustment_new (64.0, 16.0, get_total_mem () - 128, 16.0, 64.0, 0);
     GtkObject *adj = gtk_adjustment_new (64.0, 16.0, 512 - 128, 16.0, 64.0, 0); 
-    memsplit_sb = gtk_builder_get_object (builder, "spin_gpu");
-    gtk_spin_button_set_adjustment (GTK_SPIN_BUTTON (memsplit_sb), GTK_ADJUSTMENT (adj));
-    orig_gpumem = get_gpu_mem ();
-    gtk_spin_button_set_value (GTK_SPIN_BUTTON (memsplit_sb), orig_gpumem);
-
-    gtk_widget_set_sensitive (GTK_WIDGET (memsplit_sb), FALSE);
-
 
     //GdkPixbuf *win_icon = gtk_window_get_icon (GTK_WINDOW (main_dlg));
     //GList *list;
@@ -1288,7 +1408,12 @@ int main (int argc, char *argv[])
     needs_reboot = 0;
     if (gtk_dialog_run (GTK_DIALOG (main_dlg)) == GTK_RESPONSE_OK)
     {
-        if (process_changes ()) needs_reboot = 1;
+        // check vnc password exist
+        if( gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (vnc_on_rb)) && system(VNC_PASSWD_EXIST) )
+        {
+            on_change_vnc_passwd( NULL, NULL );
+        }
+        if ( process_changes() ) needs_reboot = 1;
     }
     if (needs_reboot)
     {
