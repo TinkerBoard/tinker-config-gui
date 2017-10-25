@@ -21,7 +21,6 @@
 #include <libintl.h>
 
 /* Command strings */
-/////#define GET_CAN_EXPAND  "tinker-config nonint get_can_expand"
 #define EXPAND_FS       "tinker-config nonint do_expand_rootfs"
 #define GET_HOSTNAME    "tinker-config nonint get_hostname"
 #define SET_HOSTNAME    "tinker-config nonint do_change_hostname %s"
@@ -56,7 +55,7 @@
 #define SET_1WIRE       "tinker-config nonint do_onewire %d"
 #define GET_RGPIO       "tinker-config nonint get_rgpio"
 #define SET_RGPIO       "tinker-config nonint do_rgpio %d"
-//#define GET_PI_TYPE     "tinker-config nonint get_pi_type"
+#define CHECK_RGPIO     "tinker-config nonint check_rgpio"
 #define GET_OVERCLOCK   "tinker-config nonint get_config_var arm_freq /boot/config.txt"
 #define SET_OVERCLOCK   "tinker-config nonint do_overclock %s"
 #define GET_GPU_MEM     "tinker-config nonint get_config_var gpu_mem /boot/config.txt"
@@ -81,7 +80,7 @@ static GObject *expandfs_btn, *passwd_btn, *vncpasswd_btn, *res_btn, *locale_btn
 static GObject *spi_btn, *i2c_btn, *uart_btn;
 static GObject *boot_desktop_rb, *boot_cli_rb;
 static GObject *overscan_on_rb, *overscan_off_rb, *ssh_on_rb, *ssh_off_rb, *vnc_on_rb, *vnc_off_rb;
-static GObject *serial_on_rb, *serial_off_rb, *onewire_on_rb, *onewire_off_rb;
+static GObject *serial_on_rb, *serial_off_rb, *onewire_on_rb, *onewire_off_rb, *rgpio_on_rb, *rgpio_off_rb;
 static GObject *autologin_cb, *netwait_cb, *splash_on_rb, *splash_off_rb;
 static GObject *overclock_cb, *memsplit_sb, *hostname_tb;
 static GObject *pwentry1_tb, *pwentry2_tb, *pwentry3_tb, *pwok_btn;
@@ -1183,6 +1182,12 @@ static int process_changes (void)
         reboot = 1;
     }
 
+    if (orig_rgpio != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (rgpio_off_rb)))
+    {
+        sprintf (buffer, SET_RGPIO, (1 - orig_rgpio));
+        system (buffer);
+    }
+
     if (strcmp (orig_hostname, gtk_entry_get_text (GTK_ENTRY (hostname_tb))))
     {
         sprintf (buffer, SET_HOSTNAME, gtk_entry_get_text (GTK_ENTRY (hostname_tb)));
@@ -1364,18 +1369,25 @@ int main (int argc, char *argv[])
     onewire_off_rb = gtk_builder_get_object (builder, "rb_one_off");
     if (orig_onewire = get_status (GET_1WIRE)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (onewire_off_rb), TRUE);
     else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (onewire_on_rb), TRUE);
-/*
+
     rgpio_on_rb = gtk_builder_get_object (builder, "rb_rgp_on");
     rgpio_off_rb = gtk_builder_get_object (builder, "rb_rgp_off");
     if (orig_rgpio = get_status (GET_RGPIO)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (rgpio_off_rb), TRUE);
     else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (rgpio_on_rb), TRUE);
-*/
+
     // disable the buttons if VNC isn't installed
     gboolean enable = TRUE;
     struct stat buf;
     if (stat ("/usr/share/doc/tightvncserver", &buf)) enable = FALSE;
     gtk_widget_set_sensitive (GTK_WIDGET (vnc_on_rb), enable);
     gtk_widget_set_sensitive (GTK_WIDGET (vnc_off_rb), enable);
+
+    if ( get_status (CHECK_RGPIO) )
+    {
+        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (rgpio_off_rb), TRUE);
+        gtk_widget_set_sensitive (GTK_WIDGET (rgpio_on_rb), FALSE);
+        gtk_widget_set_sensitive (GTK_WIDGET (rgpio_off_rb), FALSE);
+    }
 
     overclock_cb = gtk_builder_get_object (builder, "combo_oc_pi3");
     switch (get_status (GET_OVERCLOCK))
