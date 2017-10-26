@@ -1148,14 +1148,14 @@ static int process_changes (void)
         sprintf (buffer, SET_SPLASH, (1 - orig_splash));
         system (buffer);
     }
-
+/*
     if (orig_overscan != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (overscan_off_rb)))
     {
         sprintf (buffer, SET_OVERSCAN, (1 - orig_overscan));
         system (buffer);
         reboot = 1;
     }
-
+*/
     if (orig_ssh != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (ssh_off_rb)))
     {
         sprintf (buffer, SET_SSH, (1 - orig_ssh));
@@ -1330,12 +1330,12 @@ int main (int argc, char *argv[])
 
     res_btn = gtk_builder_get_object (builder, "button_res");
     g_signal_connect (res_btn, "clicked", G_CALLBACK (on_set_res), NULL);
-
+/*
     overscan_on_rb = gtk_builder_get_object (builder, "rb_os_on");
     overscan_off_rb = gtk_builder_get_object (builder, "rb_os_off");
     if (orig_overscan = get_status (GET_OVERSCAN)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (overscan_off_rb), TRUE);
     else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (overscan_on_rb), TRUE);
-/*
+
     camera_on_rb = gtk_builder_get_object (builder, "rb_cam_on");
     camera_off_rb = gtk_builder_get_object (builder, "rb_cam_off");
     if (orig_camera = get_status (GET_CAMERA)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (camera_off_rb), TRUE);
