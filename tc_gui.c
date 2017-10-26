@@ -1372,8 +1372,18 @@ int main (int argc, char *argv[])
 
     rgpio_on_rb = gtk_builder_get_object (builder, "rb_rgp_on");
     rgpio_off_rb = gtk_builder_get_object (builder, "rb_rgp_off");
-    if (orig_rgpio = get_status (GET_RGPIO)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (rgpio_off_rb), TRUE);
-    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (rgpio_on_rb), TRUE);
+    if ( ! get_status (CHECK_RGPIO) )
+    {
+        if (orig_rgpio = get_status (GET_RGPIO)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (rgpio_off_rb), TRUE);
+        else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (rgpio_on_rb), TRUE);
+    }
+    else
+    {
+        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (rgpio_off_rb), TRUE);
+        orig_rgpio = 1;
+        gtk_widget_set_sensitive (GTK_WIDGET (rgpio_on_rb), FALSE);
+        gtk_widget_set_sensitive (GTK_WIDGET (rgpio_off_rb), FALSE);
+    }
 
     // disable the buttons if VNC isn't installed
     gboolean enable = TRUE;
@@ -1381,13 +1391,6 @@ int main (int argc, char *argv[])
     if (stat ("/usr/share/doc/tightvncserver", &buf)) enable = FALSE;
     gtk_widget_set_sensitive (GTK_WIDGET (vnc_on_rb), enable);
     gtk_widget_set_sensitive (GTK_WIDGET (vnc_off_rb), enable);
-
-    if ( get_status (CHECK_RGPIO) )
-    {
-        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (rgpio_off_rb), TRUE);
-        gtk_widget_set_sensitive (GTK_WIDGET (rgpio_on_rb), FALSE);
-        gtk_widget_set_sensitive (GTK_WIDGET (rgpio_off_rb), FALSE);
-    }
 
     overclock_cb = gtk_builder_get_object (builder, "combo_oc_pi3");
     switch (get_status (GET_OVERCLOCK))
