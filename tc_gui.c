@@ -771,11 +771,11 @@ static void on_set_locale (GtkButton* btn, gpointer ptr)
         if (cptr)
         {
             if (!cb_ctry[0])
-                sprintf (buffer, "grep %s.*%s$ /usr/share/i18n/SUPPORTED", cb_lang, cptr);
+                sprintf (buffer, "grep ^%s.*%s$ /usr/share/i18n/SUPPORTED", cb_lang, cptr);
             else if (!cb_ext[0])
-                sprintf (buffer, "grep %s_%s.*%s$ /usr/share/i18n/SUPPORTED | grep -v @", cb_lang, cb_ctry, cptr);
+                sprintf (buffer, "grep ^%s_%s.*%s$ /usr/share/i18n/SUPPORTED | grep -v @", cb_lang, cb_ctry, cptr);
             else
-                sprintf (buffer, "grep -E '%s_%s.*%s.*%s$' /usr/share/i18n/SUPPORTED", cb_lang, cb_ctry, cb_ext, cptr);
+                sprintf (buffer, "grep -E '^%s_%s.*%s.*%s$' /usr/share/i18n/SUPPORTED", cb_lang, cb_ctry, cb_ext, cptr);
 
             // run the grep and parse the returned line
             fp = popen (buffer, "r");
