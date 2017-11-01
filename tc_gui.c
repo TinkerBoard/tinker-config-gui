@@ -66,6 +66,7 @@
 #define GET_HDMI_GROUP  "tinker-config nonint get_config_var hdmi_group /boot/config.txt"
 #define GET_HDMI_MODE   "tinker-config nonint get_config_var hdmi_mode /boot/config.txt"
 #define SET_HDMI_GP_MOD "tinker-config nonint do_resolution %d %d"
+#define SET_CUS_RES     "tinker-config nonint do_cus_resolution %d %d %d"
 #define GET_WIFI_CTRY   "tinker-config nonint get_wifi_country"
 #define SET_WIFI_CTRY   "tinker-config nonint do_wifi_country %s"
 #define CHANGE_PASSWD   "(echo \"%s\" ; echo \"%s\") | passwd $SUDO_USER"
@@ -76,20 +77,21 @@
 
 /* Controls */
 
-static GObject *expandfs_btn, *passwd_btn, *vncpasswd_btn, *res_btn, *locale_btn, *timezone_btn, *keyboard_btn, *wifi_btn;
-static GObject *spi_btn, *i2c_btn, *uart_btn;
+static GObject *expandfs_btn, *passwd_btn, *res_btn, *cus_res_btn;
+static GObject *vncpasswd_btn, *spi_btn, *i2c_btn, *uart_btn;
+static GObject *locale_btn, *timezone_btn, *keyboard_btn, *wifi_btn;
 static GObject *boot_desktop_rb, *boot_cli_rb;
 static GObject *overscan_on_rb, *overscan_off_rb, *ssh_on_rb, *ssh_off_rb, *vnc_on_rb, *vnc_off_rb;
 static GObject *serial_on_rb, *serial_off_rb, *onewire_on_rb, *onewire_off_rb, *rgpio_on_rb, *rgpio_off_rb;
 static GObject *autologin_cb, *netwait_cb, *splash_on_rb, *splash_off_rb;
 static GObject *overclock_cb, *memsplit_sb, *hostname_tb;
+static GObject *cusresentry2_tb, *cusresentry3_tb, *cusresentry4_tb, *cusresok_btn;
 static GObject *pwentry1_tb, *pwentry2_tb, *pwentry3_tb, *pwok_btn;
 static GObject *vncpwentry1_tb, *vncpwentry2_tb, *vncpwentry3_tb, *vncpwok_btn;
 static GObject *rtname_tb, *rtemail_tb, *rtok_btn;
 static GObject *tzarea_cb, *tzloc_cb, *wccountry_cb, *resolution_cb;
 static GObject *loclang_cb, *loccount_cb, *locchar_cb;
 static GObject *language_ls, *country_ls;
-
 static GtkWidget *main_dlg, *msg_dlg;
 
 /* Initial values */
@@ -1070,6 +1072,51 @@ static void on_set_res (GtkButton* btn, gpointer ptr)
 	system ("lxrandr");
 }
 
+static void set_cus_res (GtkEntry *entry, gpointer ptr)
+{
+    if ( strlen (gtk_entry_get_text (GTK_ENTRY (cusresentry2_tb))) == 0
+        || strlen (gtk_entry_get_text (GTK_ENTRY (cusresentry3_tb))) == 0
+        || strlen (gtk_entry_get_text (GTK_ENTRY (cusresentry4_tb))) == 0 )
+        gtk_widget_set_sensitive (GTK_WIDGET (cusresok_btn), FALSE);
+    else
+        gtk_widget_set_sensitive (GTK_WIDGET (cusresok_btn), TRUE);
+}
+
+static void on_set_cus_res (GtkButton* btn, gpointer ptr)
+{
+    GtkBuilder *builder;
+    GtkWidget *dlg;
+    char buffer[128];
+
+    builder = gtk_builder_new ();
+    gtk_builder_add_from_file (builder, PACKAGE_DATA_DIR "tc_gui.ui", NULL);
+    dlg = (GtkWidget *) gtk_builder_get_object (builder, "cusresdialog");
+    gtk_window_set_transient_for (GTK_WINDOW (dlg), GTK_WINDOW (main_dlg));
+
+    cusresentry2_tb = gtk_builder_get_object (builder, "cusresentry2");
+    cusresentry3_tb = gtk_builder_get_object (builder, "cusresentry3");
+    cusresentry4_tb = gtk_builder_get_object (builder, "cusresentry4");
+    gtk_entry_set_visibility (GTK_ENTRY (cusresentry2_tb), TRUE);
+    gtk_entry_set_visibility (GTK_ENTRY (cusresentry3_tb), TRUE);
+    gtk_entry_set_visibility (GTK_ENTRY (cusresentry4_tb), TRUE);
+    cusresok_btn = gtk_builder_get_object (builder, "cusresok");
+    gtk_widget_set_sensitive (GTK_WIDGET (cusresok_btn), FALSE);
+    g_signal_connect (cusresentry2_tb, "changed", G_CALLBACK (set_cus_res), NULL);
+    g_signal_connect (cusresentry3_tb, "changed", G_CALLBACK (set_cus_res), NULL);
+    g_signal_connect (cusresentry4_tb, "changed", G_CALLBACK (set_cus_res), NULL);
+
+    g_object_unref (builder);
+    if (gtk_dialog_run (GTK_DIALOG (dlg)) == GTK_RESPONSE_OK)
+    {
+        sprintf (buffer, SET_CUS_RES
+            , atoi (gtk_entry_get_text (GTK_ENTRY (cusresentry2_tb)))
+            , atoi (gtk_entry_get_text (GTK_ENTRY (cusresentry3_tb)))
+            , atoi (gtk_entry_get_text (GTK_ENTRY (cusresentry4_tb))));
+        system (buffer);
+    }
+    gtk_widget_destroy (dlg);
+}
+
 /* Button handlers */
 
 static void on_expand_fs (GtkButton* btn, gpointer ptr)
@@ -1330,6 +1377,9 @@ int main (int argc, char *argv[])
 
     res_btn = gtk_builder_get_object (builder, "button_res");
     g_signal_connect (res_btn, "clicked", G_CALLBACK (on_set_res), NULL);
+
+    cus_res_btn = gtk_builder_get_object (builder, "button_cus_res");
+    g_signal_connect (cus_res_btn, "clicked", G_CALLBACK (on_set_cus_res), NULL);
 /*
     overscan_on_rb = gtk_builder_get_object (builder, "rb_os_on");
     overscan_off_rb = gtk_builder_get_object (builder, "rb_os_off");
