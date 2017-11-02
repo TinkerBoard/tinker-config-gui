@@ -56,8 +56,6 @@
 #define GET_RGPIO       "tinker-config nonint get_rgpio"
 #define SET_RGPIO       "tinker-config nonint do_rgpio %d"
 #define CHECK_RGPIO     "tinker-config nonint check_rgpio"
-#define GET_OVERCLOCK   "tinker-config nonint get_config_var arm_freq /boot/config.txt"
-#define SET_OVERCLOCK   "tinker-config nonint do_overclock %s"
 #define GET_GPU_MEM     "tinker-config nonint get_config_var gpu_mem /boot/config.txt"
 #define GET_GPU_MEM_256 "tinker-config nonint get_config_var gpu_mem_256 /boot/config.txt"
 #define GET_GPU_MEM_512 "tinker-config nonint get_config_var gpu_mem_512 /boot/config.txt"
@@ -84,7 +82,7 @@ static GObject *boot_desktop_rb, *boot_cli_rb;
 static GObject *overscan_on_rb, *overscan_off_rb, *ssh_on_rb, *ssh_off_rb, *vnc_on_rb, *vnc_off_rb;
 static GObject *serial_on_rb, *serial_off_rb, *onewire_on_rb, *onewire_off_rb, *rgpio_on_rb, *rgpio_off_rb;
 static GObject *autologin_cb, *netwait_cb, *splash_on_rb, *splash_off_rb;
-static GObject *overclock_cb, *memsplit_sb, *hostname_tb;
+static GObject *memsplit_sb, *hostname_tb;
 static GObject *cusresentry2_tb, *cusresentry3_tb, *cusresentry4_tb, *cusresok_btn;
 static GObject *pwentry1_tb, *pwentry2_tb, *pwentry3_tb, *pwok_btn;
 static GObject *vncpwentry1_tb, *vncpwentry2_tb, *vncpwentry3_tb, *vncpwok_btn;
@@ -1242,24 +1240,6 @@ static int process_changes (void)
         reboot = 1;
     }
 
-    if (orig_clock != gtk_combo_box_get_active (GTK_COMBO_BOX (overclock_cb)))
-    {
-        switch (gtk_combo_box_get_active (GTK_COMBO_BOX (overclock_cb)))
-        {
-            case 0 :    sprintf (buffer, SET_OVERCLOCK, "None");
-                        break;
-            case 1 :    sprintf (buffer, SET_OVERCLOCK, "Modest");
-                        break;
-            case 2 :    sprintf (buffer, SET_OVERCLOCK, "Medium");
-                        break;
-            case 3 :    sprintf (buffer, SET_OVERCLOCK, "High");
-                        break;
-            case 4 :    sprintf (buffer, SET_OVERCLOCK, "Turbo");
-                        break;
-        }
-        system (buffer);
-        reboot = 1;
-    }
     return reboot;
 }
 
@@ -1441,24 +1421,6 @@ int main (int argc, char *argv[])
     if (stat ("/usr/share/doc/tightvncserver", &buf)) enable = FALSE;
     gtk_widget_set_sensitive (GTK_WIDGET (vnc_on_rb), enable);
     gtk_widget_set_sensitive (GTK_WIDGET (vnc_off_rb), enable);
-
-    overclock_cb = gtk_builder_get_object (builder, "combo_oc_pi3");
-    switch (get_status (GET_OVERCLOCK))
-    {
-        case 800  : orig_clock = 1;
-            break;
-        case 900  : orig_clock = 2;
-            break;
-        case 950  : orig_clock = 3;;
-            break;
-        case 1000 : orig_clock = 4;;
-            break;
-        default   : orig_clock = 0;
-            break;
-    }
-    gtk_combo_box_set_active (GTK_COMBO_BOX (overclock_cb), orig_clock);
-    gtk_widget_show_all (GTK_WIDGET (gtk_builder_get_object (builder, "hbox33")));
-
 
     //not support yet ###
     //GtkObject *adj = gtk_adjustment_new (64.0, 16.0, get_total_mem () - 128, 16.0, 64.0, 0);
