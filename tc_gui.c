@@ -21,54 +21,54 @@
 #include <libintl.h>
 
 /* Command strings */
-#define EXPAND_FS       "tinker-config nonint do_expand_rootfs"
-#define GET_HOSTNAME    "tinker-config nonint get_hostname"
-#define SET_HOSTNAME    "tinker-config nonint do_change_hostname %s"
-#define GET_BOOT_CLI    "tinker-config nonint get_boot_cli"
-#define GET_AUTOLOGIN   "tinker-config nonint get_autologin"
-#define SET_BOOT_CLI    "tinker-config nonint do_boot_behaviour B1"
-#define SET_BOOT_CLIA   "tinker-config nonint do_boot_behaviour B2"
-#define SET_BOOT_GUI    "tinker-config nonint do_boot_behaviour B3"
-#define SET_BOOT_GUIA   "tinker-config nonint do_boot_behaviour B4"
-#define GET_BOOT_WAIT   "tinker-config nonint get_boot_wait"
-#define SET_BOOT_WAIT   "tinker-config nonint do_boot_wait %d"
-#define GET_SPLASH      "tinker-config nonint get_boot_splash"
-#define SET_SPLASH      "tinker-config nonint do_boot_splash %d"
-#define GET_OVERSCAN    "tinker-config nonint get_overscan"
-#define SET_OVERSCAN    "tinker-config nonint do_overscan %d"
-#define GET_CAMERA      "tinker-config nonint get_camera"
-#define SET_CAMERA      "tinker-config nonint do_camera %d"
-#define GET_SSH         "tinker-config nonint get_ssh"
-#define SET_SSH         "tinker-config nonint do_ssh %d"
-#define GET_VNC         "tinker-config nonint get_vnc"
-#define SET_VNC         "tinker-config nonint do_vnc %d"
-#define GET_SPI         "tinker-config nonint get_spi %d"
-#define SET_SPI         "tinker-config nonint do_single_spi %d %d"
-#define GET_I2C         "tinker-config nonint get_i2c %d"
-#define SET_I2C         "tinker-config nonint do_single_i2c %d %d"
-#define GET_UART        "tinker-config nonint get_uart %d"
-#define SET_UART        "tinker-config nonint do_single_uart %d %d"
-#define GET_SERIAL      "tinker-config nonint get_serial"
-#define GET_SERIALHW    "tinker-config nonint get_serial_hw"
-#define SET_SERIAL      "tinker-config nonint do_serial %d"
-#define GET_1WIRE       "tinker-config nonint get_onewire"
-#define SET_1WIRE       "tinker-config nonint do_onewire %d"
-#define GET_RGPIO       "tinker-config nonint get_rgpio"
-#define SET_RGPIO       "tinker-config nonint do_rgpio %d"
-#define CHECK_RGPIO     "tinker-config nonint check_rgpio"
-#define GET_GPU_MEM     "tinker-config nonint get_config_var gpu_mem /boot/config.txt"
-#define GET_GPU_MEM_256 "tinker-config nonint get_config_var gpu_mem_256 /boot/config.txt"
-#define GET_GPU_MEM_512 "tinker-config nonint get_config_var gpu_mem_512 /boot/config.txt"
-#define GET_GPU_MEM_1K  "tinker-config nonint get_config_var gpu_mem_1024 /boot/config.txt"
-#define SET_GPU_MEM     "tinker-config nonint do_memory_split %d"
-#define GET_HDMI_GROUP  "tinker-config nonint get_config_var hdmi_group /boot/config.txt"
-#define GET_HDMI_MODE   "tinker-config nonint get_config_var hdmi_mode /boot/config.txt"
-#define SET_HDMI_GP_MOD "tinker-config nonint do_resolution %d %d"
-#define SET_CUS_RES     "tinker-config nonint do_cus_resolution %d %d %d"
-#define GET_WIFI_CTRY   "tinker-config nonint get_wifi_country"
-#define SET_WIFI_CTRY   "tinker-config nonint do_wifi_country %s"
+#define EXPAND_FS       "sudo tinker-config nonint do_expand_rootfs"
+#define GET_HOSTNAME    "sudo tinker-config nonint get_hostname"
+#define SET_HOSTNAME    "sudo tinker-config nonint do_change_hostname %s"
+#define GET_BOOT_CLI    "sudo tinker-config nonint get_boot_cli"
+#define GET_AUTOLOGIN   "sudo tinker-config nonint get_autologin"
+#define SET_BOOT_CLI    "sudo tinker-config nonint do_boot_behaviour B1"
+#define SET_BOOT_CLIA   "sudo tinker-config nonint do_boot_behaviour B2"
+#define SET_BOOT_GUI    "sudo tinker-config nonint do_boot_behaviour B3"
+#define SET_BOOT_GUIA   "sudo tinker-config nonint do_boot_behaviour B4"
+#define GET_BOOT_WAIT   "sudo tinker-config nonint get_boot_wait"
+#define SET_BOOT_WAIT   "sudo tinker-config nonint do_boot_wait %d"
+#define GET_SPLASH      "sudo tinker-config nonint get_boot_splash"
+#define SET_SPLASH      "sudo tinker-config nonint do_boot_splash %d"
+#define GET_OVERSCAN    "sudo tinker-config nonint get_overscan"
+#define SET_OVERSCAN    "sudo tinker-config nonint do_overscan %d"
+#define GET_CAMERA      "sudo tinker-config nonint get_camera"
+#define SET_CAMERA      "sudo tinker-config nonint do_camera %d"
+#define GET_SSH         "sudo tinker-config nonint get_ssh"
+#define SET_SSH         "sudo tinker-config nonint do_ssh %d"
+#define GET_VNC         "sudo tinker-config nonint get_vnc"
+#define SET_VNC         "sudo tinker-config nonint do_vnc %d"
+#define GET_SPI         "sudo tinker-config nonint get_spi %d"
+#define SET_SPI         "sudo tinker-config nonint do_single_spi %d %d"
+#define GET_I2C         "sudo tinker-config nonint get_i2c %d"
+#define SET_I2C         "sudo tinker-config nonint do_single_i2c %d %d"
+#define GET_UART        "sudo tinker-config nonint get_uart %d"
+#define SET_UART        "sudo tinker-config nonint do_single_uart %d %d"
+#define GET_SERIAL      "sudo tinker-config nonint get_serial"
+#define GET_SERIALHW    "sudo tinker-config nonint get_serial_hw"
+#define SET_SERIAL      "sudo tinker-config nonint do_serial %d"
+#define GET_1WIRE       "sudo tinker-config nonint get_onewire"
+#define SET_1WIRE       "sudo tinker-config nonint do_onewire %d"
+#define GET_RGPIO       "sudo tinker-config nonint get_rgpio"
+#define SET_RGPIO       "sudo tinker-config nonint do_rgpio %d"
+#define CHECK_RGPIO     "sudo tinker-config nonint check_rgpio"
+#define GET_GPU_MEM     "sudo tinker-config nonint get_config_var gpu_mem /boot/config.txt"
+#define GET_GPU_MEM_256 "sudo tinker-config nonint get_config_var gpu_mem_256 /boot/config.txt"
+#define GET_GPU_MEM_512 "sudo tinker-config nonint get_config_var gpu_mem_512 /boot/config.txt"
+#define GET_GPU_MEM_1K  "sudo tinker-config nonint get_config_var gpu_mem_1024 /boot/config.txt"
+#define SET_GPU_MEM     "sudo tinker-config nonint do_memory_split %d"
+#define GET_HDMI_GROUP  "sudo tinker-config nonint get_config_var hdmi_group /boot/config.txt"
+#define GET_HDMI_MODE   "sudo tinker-config nonint get_config_var hdmi_mode /boot/config.txt"
+#define SET_HDMI_GP_MOD "sudo tinker-config nonint do_resolution %d %d"
+#define SET_CUS_RES     "sudo tinker-config nonint do_cus_resolution %d %d %d"
+#define GET_WIFI_CTRY   "sudo tinker-config nonint get_wifi_country"
+#define SET_WIFI_CTRY   "sudo tinker-config nonint do_wifi_country %s"
 #define CHANGE_PASSWD   "(echo \"%s\" ; echo \"%s\") | passwd $SUDO_USER"
-#define CHANGE_VNC_PASSWD   "tinker-config nonint set_vnc_passwd %s"
+#define CHANGE_VNC_PASSWD   "sudo tinker-config nonint set_vnc_passwd %s"
 #define VNC_PASSWD_EXIST    "[ -e $HOME/.vnc/passwd ]" //0 = exist, 1 = not exist
 
 #define PACKAGE_DATA_DIR "/usr/share/tc_gui/"
@@ -657,8 +657,8 @@ static gpointer locale_thread (gpointer data)
 {
     char buffer[256];
 
-    system ("locale-gen");
-    sprintf (buffer, "update-locale LANG=%s", glocale);
+    system ("sudo locale-gen");
+    sprintf (buffer, "sudo update-locale LANG=%s", glocale);
     system (buffer);
     g_idle_add (close_msg, NULL);
     return NULL;
@@ -802,7 +802,7 @@ static void on_set_locale (GtkButton* btn, gpointer ptr)
                 // use sed to comment that line if uncommented
                 if (cb_lang[0])
                 {
-                    sprintf (buffer, "sed -i 's/^%s/# %s/g' /etc/locale.gen", cb_lang, cb_lang);
+                    sprintf (buffer, "sudo sed -i 's/^%s/# %s/g' /etc/locale.gen", cb_lang, cb_lang);
                     system (buffer);
                 }
 
@@ -819,7 +819,7 @@ static void on_set_locale (GtkButton* btn, gpointer ptr)
                 // use sed to uncomment that line if commented
                 if (cb_lang[0])
                 {
-                    sprintf (buffer, "sed -i 's/^# %s/%s/g' /etc/locale.gen", cb_lang, cb_lang);
+                    sprintf (buffer, "sudo sed -i 's/^# %s/%s/g' /etc/locale.gen", cb_lang, cb_lang);
                     system (buffer);
                 }
 
@@ -908,8 +908,8 @@ static void area_changed (GtkComboBox *cb, gpointer ptr)
 
 static gpointer timezone_thread (gpointer data)
 {
-    system ("rm /etc/localtime");
-    system ("dpkg-reconfigure --frontend noninteractive tzdata");
+    system ("sudo rm /etc/localtime");
+    system ("sudo dpkg-reconfigure --frontend noninteractive tzdata");
     g_idle_add (close_msg, NULL);
     return NULL;
 }
@@ -978,10 +978,10 @@ static void on_set_timezone (GtkButton* btn, gpointer ptr)
         if (strcmp (before, buffer))
         {
             if (gtk_combo_box_get_active_text (GTK_COMBO_BOX (tzloc_cb)))
-                sprintf (buffer, "echo '%s/%s' | tee /etc/timezone", gtk_combo_box_get_active_text (GTK_COMBO_BOX (tzarea_cb)),
+                sprintf (buffer, "echo '%s/%s' | sudo tee /etc/timezone", gtk_combo_box_get_active_text (GTK_COMBO_BOX (tzarea_cb)),
                     gtk_combo_box_get_active_text (GTK_COMBO_BOX (tzloc_cb)));
             else
-                sprintf (buffer, "echo '%s' | tee /etc/timezone", gtk_combo_box_get_active_text (GTK_COMBO_BOX (tzarea_cb)));
+                sprintf (buffer, "echo '%s' | sudo tee /etc/timezone", gtk_combo_box_get_active_text (GTK_COMBO_BOX (tzarea_cb)));
             system (buffer);
 
             // warn about a short delay...
@@ -1448,7 +1448,7 @@ int main (int argc, char *argv[])
         gtk_window_set_transient_for (GTK_WINDOW (dlg), GTK_WINDOW (main_dlg));
         if (gtk_dialog_run (GTK_DIALOG (dlg)) == GTK_RESPONSE_YES)
         {
-            system ("reboot");
+            system ("sudo reboot");
         }
         gtk_widget_destroy (dlg);
     }
