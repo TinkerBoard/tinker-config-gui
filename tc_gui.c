@@ -95,6 +95,7 @@ static GtkWidget *main_dlg, *msg_dlg;
 /* Initial values */
 
 static char orig_hostname[128];
+static char username[128];
 static int orig_boot, orig_overscan, orig_camera, orig_ssh, orig_serial, orig_splash;
 static int orig_clock, orig_gpumem, orig_autolog, orig_netwait, orig_onewire, orig_rgpio, orig_vnc;
 
@@ -1243,35 +1244,6 @@ static int process_changes (void)
     return reboot;
 }
 
-/* Status checks */
-
-static int can_configure (void)
-{
-    struct stat buf;
-    FILE *fp;
-
-    // check lightdm is installed
-    if (stat ("/etc/init.d/lightdm", &buf)) return 0;
-
-#ifdef __arm__
-    // check startx.elf is present
-    //if (stat ("/boot/start_x.elf", &buf)) return 0;
-
-    // check device tree is enabled
-    //if (!get_status ("cat /boot/config.txt | grep -q ^device_tree=$ ; echo $?")) return 0;
-
-    // check /boot is mounted
-    fp = popen ("mountpoint /boot", "r");
-    if (pclose (fp) != 0) return 0;
-
-    // create /boot/config.txt if it doesn't exist
-    system ("[ -e /boot/config.txt ] || touch /boot/config.txt");
-#endif
-
-    return 1;
-}
-
-
 
 /* The dialog... */
 
@@ -1298,8 +1270,9 @@ int main (int argc, char *argv[])
     builder = gtk_builder_new ();
     gtk_builder_add_from_file (builder, PACKAGE_DATA_DIR "tc_gui.ui", NULL);
 
-    /*
-    if (!can_configure ())
+    // check sudo privilege
+    get_string ("sudo whoami", username);
+    if ( strcmp(username, "root") != 0 )
     {
         dlg = (GtkWidget *) gtk_builder_get_object (builder, "errordialog");
         gtk_window_set_transient_for (GTK_WINDOW (dlg), GTK_WINDOW (main_dlg));
@@ -1308,7 +1281,6 @@ int main (int argc, char *argv[])
         gtk_widget_destroy (dlg);
         return 0;
     }
-    */
 
     // Set the UI status
     main_dlg = (GtkWidget *) gtk_builder_get_object (builder, "dialog1");

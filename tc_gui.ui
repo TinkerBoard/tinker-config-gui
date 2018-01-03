@@ -1363,11 +1363,7 @@
             <property name="can_focus">False</property>
             <property name="xpad">10</property>
             <property name="ypad">5</property>
-            <property name="label" translatable="yes">The Tinker Board Configuration application can only modify a standard configuration.
-
-Your configuration appears to have been modified by other tools, and so this application cannot be used on your system.
-
-In order to use this application, you need to have the latest firmware installed, Device Tree enabled, the default "linaro" user set up and the lightdm application installed. </property>
+            <property name="label" translatable="yes">Permission denied. Please login with sudo privileges and try again.</property>
             <property name="wrap">True</property>
           </object>
           <packing>
