@@ -1,0 +1,17 @@
+tc_gui is a GTK version configuration tool that allows you to configure your Tinker Board system settings.
+tc_gui is depend on tinker-config. Please install tinker-config first.
+
+
+BUILD
+==========
+$ sudo apt-get update
+$ sudo apt-get install -y libgtk2.0-dev build-essential 
+$ make
+
+INSTALL
+==========
+$ make install
+
+UNINSTALL
+==========
+$ make uninstall
