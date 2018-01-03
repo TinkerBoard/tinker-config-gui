@@ -67,7 +67,7 @@
 #define SET_CUS_RES     "sudo tinker-config nonint do_cus_resolution %d %d %d"
 #define GET_WIFI_CTRY   "sudo tinker-config nonint get_wifi_country"
 #define SET_WIFI_CTRY   "sudo tinker-config nonint do_wifi_country %s"
-#define CHANGE_PASSWD   "(echo \"%s\" ; echo \"%s\") | passwd $SUDO_USER"
+#define CHANGE_PASSWD   "(echo \"%s\" ; echo \"%s\") | sudo passwd linaro"
 #define CHANGE_VNC_PASSWD   "sudo tinker-config nonint set_vnc_passwd %s"
 #define VNC_PASSWD_EXIST    "[ -e $HOME/.vnc/passwd ]" //0 = exist, 1 = not exist
 
