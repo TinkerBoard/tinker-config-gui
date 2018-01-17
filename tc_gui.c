@@ -1324,6 +1324,12 @@ int main (int argc, char *argv[])
     gtk_widget_set_sensitive (GTK_WIDGET (vnc_on_rb), enable);
     gtk_widget_set_sensitive (GTK_WIDGET (vnc_off_rb), enable);
 
+    // show message page
+    dlg = (GtkWidget *) gtk_builder_get_object (builder, "msgdialog");
+    gtk_window_set_transient_for (GTK_WINDOW (dlg), GTK_WINDOW (main_dlg));
+    gtk_dialog_run (GTK_DIALOG (dlg));
+    gtk_widget_destroy (dlg);
+
     needs_reboot = 0;
 
     if (gtk_dialog_run (GTK_DIALOG (main_dlg)) == GTK_RESPONSE_OK)

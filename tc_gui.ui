@@ -1363,7 +1363,7 @@
             <property name="can_focus">False</property>
             <property name="xpad">10</property>
             <property name="ypad">5</property>
-            <property name="label" translatable="yes">Permission denied. Please login with sudo privileges and try again.</property>
+            <property name="label" translatable="yes">Permission denied. You are not in the sudoers file. Please login with sudo privileges and try again</property>
             <property name="wrap">True</property>
           </object>
           <packing>
@@ -1376,6 +1376,78 @@
     </child>
     <action-widgets>
       <action-widget response="0">errorokbtn</action-widget>
+    </action-widgets>
+  </object>
+    <object class="GtkDialog" id="msgdialog">
+    <property name="can_focus">False</property>
+    <property name="border_width">5</property>
+    <property name="title" translatable="yes">Tinker Board Configuration</property>
+    <property name="resizable">False</property>
+    <property name="icon">/usr/share/pixmaps/leafpad.png</property>
+    <property name="type_hint">dialog</property>
+    <child internal-child="vbox">
+      <object class="GtkVBox" id="msgdlg_vbox">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="spacing">2</property>
+        <child internal-child="action_area">
+          <object class="GtkHButtonBox" id="msgdlg_action_area">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="layout_style">end</property>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <object class="GtkButton" id="msgokbtn">
+                <property name="label">gtk-ok</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="use_stock">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="msgmsg">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="xpad">10</property>
+            <property name="ypad">5</property>
+            <property name="label" translatable="yes">Welcome to the Tinker Board Configuration Tool (Experimental).
+
+This version is based off the popular version from the SBC (single board computer) community and is still in its development stage. 
+
+Currently some features may not be available as they were not originally designed for the Tinker board or are still under development. Please understand that you may encounter situations where some features cannot be used.
+
+In addition, you can find the open source available on GitHub. We welcome you to visit the forum or GitHub to ask questions, discuss and give your suggestions on how to improve this tool.
+
+GitHub : http://github.com/tinkerboard
+Forum : http://tinkerboarding.co.uk/forum
+</property>
+            <property name="wrap">True</property>
+          </object>
+          <packing>
+            <property name="expand">True</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+    <action-widgets>
+      <action-widget response="0">msgokbtn</action-widget>
     </action-widgets>
   </object>
   <object class="GtkDialog" id="fsdonedlg">
