@@ -34,10 +34,6 @@
 #define SET_BOOT_WAIT   "sudo tinker-config nonint do_boot_wait %d"
 #define GET_SPLASH      "sudo tinker-config nonint get_boot_splash"
 #define SET_SPLASH      "sudo tinker-config nonint do_boot_splash %d"
-#define GET_OVERSCAN    "sudo tinker-config nonint get_overscan"
-#define SET_OVERSCAN    "sudo tinker-config nonint do_overscan %d"
-#define GET_CAMERA      "sudo tinker-config nonint get_camera"
-#define SET_CAMERA      "sudo tinker-config nonint do_camera %d"
 #define GET_SSH         "sudo tinker-config nonint get_ssh"
 #define SET_SSH         "sudo tinker-config nonint do_ssh %d"
 #define GET_VNC         "sudo tinker-config nonint get_vnc"
@@ -56,14 +52,6 @@
 #define GET_RGPIO       "sudo tinker-config nonint get_rgpio"
 #define SET_RGPIO       "sudo tinker-config nonint do_rgpio %d"
 #define CHECK_RGPIO     "sudo tinker-config nonint check_rgpio"
-#define GET_GPU_MEM     "sudo tinker-config nonint get_config_var gpu_mem /boot/config.txt"
-#define GET_GPU_MEM_256 "sudo tinker-config nonint get_config_var gpu_mem_256 /boot/config.txt"
-#define GET_GPU_MEM_512 "sudo tinker-config nonint get_config_var gpu_mem_512 /boot/config.txt"
-#define GET_GPU_MEM_1K  "sudo tinker-config nonint get_config_var gpu_mem_1024 /boot/config.txt"
-#define SET_GPU_MEM     "sudo tinker-config nonint do_memory_split %d"
-#define GET_HDMI_GROUP  "sudo tinker-config nonint get_config_var hdmi_group /boot/config.txt"
-#define GET_HDMI_MODE   "sudo tinker-config nonint get_config_var hdmi_mode /boot/config.txt"
-#define SET_HDMI_GP_MOD "sudo tinker-config nonint do_resolution %d %d"
 #define SET_CUS_RES     "sudo tinker-config nonint do_cus_resolution %d %d %d"
 #define GET_WIFI_CTRY   "sudo tinker-config nonint get_wifi_country"
 #define SET_WIFI_CTRY   "sudo tinker-config nonint do_wifi_country %s"
@@ -144,44 +132,6 @@ static void get_string (char *cmd, char *name)
     pclose (fp);
 }
 
-static int get_total_mem (void)
-{
-    FILE *fp;
-    char buf[64];
-    int arm, gpu;
-    
-    fp = popen ("vcgencmd get_mem arm", "r");
-    if (fp == NULL) return 0;
-    while (fgets (buf, sizeof (buf) - 1, fp) != NULL)
-        sscanf (buf, "arm=%dM", &arm);
-    pclose (fp);
-
-    fp = popen ("vcgencmd get_mem gpu", "r");
-    if (fp == NULL) return 0;
-    while (fgets (buf, sizeof (buf) - 1, fp) != NULL)
-        sscanf (buf, "gpu=%dM", &gpu);
-    pclose (fp);
-
-    return arm + gpu;    
-}
-
-static int get_gpu_mem (void)
-{
-    //int mem, tmem = get_total_mem ();
-    int mem, tmem = 512;///////////////
-
-    if (tmem > 512)
-        mem = get_status (GET_GPU_MEM_1K);
-    else if (tmem > 256)
-        mem = get_status (GET_GPU_MEM_512);
-    else
-        mem = get_status (GET_GPU_MEM_256);
-
-    if (mem == 0) mem = get_status (GET_GPU_MEM);
-    if (mem == 0) mem = 64;
-    return mem;
-}
-
 static void get_quoted_param (char *path, char *fname, char *toseek, char *result)
 {
     char buffer[256], *linebuf = NULL, *cptr, *dptr;
@@ -222,9 +172,6 @@ static void get_quoted_param (char *path, char *fname, char *toseek, char *resul
 
 static void get_language (char *instr, char *lang) 
 {
-    // Rpi:     instr -> en_GB.UTF-8
-    // Tinker:  instr -> C.UTF-8
-
     char *cptr = lang;
     int count = 0;
     
@@ -1194,14 +1141,7 @@ static int process_changes (void)
         sprintf (buffer, SET_SPLASH, (1 - orig_splash));
         system (buffer);
     }
-/*
-    if (orig_overscan != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (overscan_off_rb)))
-    {
-        sprintf (buffer, SET_OVERSCAN, (1 - orig_overscan));
-        system (buffer);
-        reboot = 1;
-    }
-*/
+
     if (orig_ssh != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (ssh_off_rb)))
     {
         sprintf (buffer, SET_SSH, (1 - orig_ssh));
@@ -1332,17 +1272,7 @@ int main (int argc, char *argv[])
 
     cus_res_btn = gtk_builder_get_object (builder, "button_cus_res");
     g_signal_connect (cus_res_btn, "clicked", G_CALLBACK (on_set_cus_res), NULL);
-/*
-    overscan_on_rb = gtk_builder_get_object (builder, "rb_os_on");
-    overscan_off_rb = gtk_builder_get_object (builder, "rb_os_off");
-    if (orig_overscan = get_status (GET_OVERSCAN)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (overscan_off_rb), TRUE);
-    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (overscan_on_rb), TRUE);
 
-    camera_on_rb = gtk_builder_get_object (builder, "rb_cam_on");
-    camera_off_rb = gtk_builder_get_object (builder, "rb_cam_off");
-    if (orig_camera = get_status (GET_CAMERA)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (camera_off_rb), TRUE);
-    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (camera_on_rb), TRUE);
-*/
     ssh_on_rb = gtk_builder_get_object (builder, "rb_ssh_on");
     ssh_off_rb = gtk_builder_get_object (builder, "rb_ssh_off");
     if (orig_ssh = get_status (GET_SSH)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (ssh_off_rb), TRUE);
@@ -1394,17 +1324,8 @@ int main (int argc, char *argv[])
     gtk_widget_set_sensitive (GTK_WIDGET (vnc_on_rb), enable);
     gtk_widget_set_sensitive (GTK_WIDGET (vnc_off_rb), enable);
 
-    //not support yet ###
-    //GtkObject *adj = gtk_adjustment_new (64.0, 16.0, get_total_mem () - 128, 16.0, 64.0, 0);
-    GtkObject *adj = gtk_adjustment_new (64.0, 16.0, 512 - 128, 16.0, 64.0, 0); 
-
-    //GdkPixbuf *win_icon = gtk_window_get_icon (GTK_WINDOW (main_dlg));
-    //GList *list;
-    //list = g_list_append (list, win_icon);
-    //Segmentation fault 0.0
-    //gtk_window_set_default_icon_list (list);
-
     needs_reboot = 0;
+
     if (gtk_dialog_run (GTK_DIALOG (main_dlg)) == GTK_RESPONSE_OK)
     {
         // check vnc password exist
