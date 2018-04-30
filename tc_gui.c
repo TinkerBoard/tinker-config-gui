@@ -52,6 +52,8 @@
 #define GET_RGPIO       "sudo tinker-config nonint get_rgpio"
 #define SET_RGPIO       "sudo tinker-config nonint do_rgpio %d"
 #define CHECK_RGPIO     "sudo tinker-config nonint check_rgpio"
+#define GET_WLANLOG     "sudo tinker-config nonint get_wlan_verbose_log"
+#define SET_WLANLOG     "sudo tinker-config nonint do_wlan_verbose_log %d"
 #define SET_CUS_RES     "sudo tinker-config nonint do_cus_resolution %d %d %d"
 #define GET_WIFI_CTRY   "sudo tinker-config nonint get_wifi_country"
 #define SET_WIFI_CTRY   "sudo tinker-config nonint do_wifi_country %s"
@@ -63,7 +65,7 @@
 
 /* Controls */
 
-static GObject *expandfs_btn, *passwd_btn, *res_btn, *cus_res_btn;
+static GObject *expandfs_btn, *passwd_btn, *res_btn, *cus_res_btn, *wlanlog_on_rb, *wlanlog_off_rb;
 static GObject *vncpasswd_btn, *spi_btn, *i2c_btn, *uart_btn;
 static GObject *locale_btn, *timezone_btn, *keyboard_btn, *wifi_btn;
 static GObject *boot_desktop_rb, *boot_cli_rb;
@@ -84,7 +86,7 @@ static GtkWidget *main_dlg, *msg_dlg;
 
 static char orig_hostname[128];
 static char username[128];
-static int orig_boot, orig_overscan, orig_camera, orig_ssh, orig_serial, orig_splash;
+static int orig_boot, orig_overscan, orig_camera, orig_ssh, orig_serial, orig_splash, orig_wlanlog;
 static int orig_clock, orig_gpumem, orig_autolog, orig_netwait, orig_onewire, orig_rgpio, orig_vnc;
 
 /* Reboot flag set after locale change */
@@ -1173,6 +1175,12 @@ static int process_changes (void)
         sprintf (buffer, SET_RGPIO, (1 - orig_rgpio));
         system (buffer);
     }
+    
+    if (orig_wlanlog != gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (wlanlog_off_rb)))
+    {
+        sprintf (buffer, SET_WLANLOG, (1 - orig_wlanlog));
+        system (buffer);
+    }
 
     if (strcmp (orig_hostname, gtk_entry_get_text (GTK_ENTRY (hostname_tb))))
     {
@@ -1316,6 +1324,11 @@ int main (int argc, char *argv[])
         gtk_widget_set_sensitive (GTK_WIDGET (rgpio_on_rb), FALSE);
         gtk_widget_set_sensitive (GTK_WIDGET (rgpio_off_rb), FALSE);
     }
+    
+    wlanlog_on_rb = gtk_builder_get_object (builder, "rb_wlanlog_on");
+    wlanlog_off_rb = gtk_builder_get_object (builder, "rb_wlanlog_off");
+    if (orig_wlanlog = get_status (GET_WLANLOG)) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (wlanlog_off_rb), TRUE);
+    else gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (wlanlog_on_rb), TRUE);
 
     // disable the buttons if VNC isn't installed
     gboolean enable = TRUE;
