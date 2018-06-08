@@ -66,7 +66,7 @@
 /* Controls */
 
 static GObject *expandfs_btn, *passwd_btn, *res_btn, *cus_res_btn, *wlanlog_on_rb, *wlanlog_off_rb;
-static GObject *vncpasswd_btn, *spi_btn, *i2c_btn, *uart_btn;
+static GObject *vncpasswd_btn, *spi_btn, *i2c_btn, *uart_btn, *about_btn;
 static GObject *locale_btn, *timezone_btn, *keyboard_btn, *wifi_btn;
 static GObject *boot_desktop_rb, *boot_cli_rb;
 static GObject *overscan_on_rb, *overscan_off_rb, *ssh_on_rb, *ssh_off_rb, *vnc_on_rb, *vnc_off_rb;
@@ -1065,6 +1065,21 @@ static void on_set_cus_res (GtkButton* btn, gpointer ptr)
     gtk_widget_destroy (dlg);
 }
 
+
+static void show_about_page (GtkButton* btn, gpointer ptr)
+{
+    GtkBuilder *builder;
+    GtkWidget *dlg;
+
+    builder = gtk_builder_new ();
+    gtk_builder_add_from_file (builder, PACKAGE_DATA_DIR "tc_gui.ui", NULL);
+    dlg = (GtkWidget *) gtk_builder_get_object( builder, "aboutdialog1" );
+    gtk_window_set_transient_for (GTK_WINDOW (dlg), GTK_WINDOW (main_dlg));
+    g_object_unref (builder);
+    gtk_dialog_run (GTK_DIALOG (dlg));
+    gtk_widget_hide(dlg);
+}
+
 /* Button handlers */
 
 static void on_expand_fs (GtkButton* btn, gpointer ptr)
@@ -1300,6 +1315,9 @@ int main (int argc, char *argv[])
     uart_btn = gtk_builder_get_object (builder, "button_uart");
     g_signal_connect (uart_btn, "clicked", G_CALLBACK (on_set_uart), NULL);
 
+    about_btn = gtk_builder_get_object (builder, "button3");
+    g_signal_connect (about_btn, "clicked", G_CALLBACK (show_about_page), NULL);
+
     serial_on_rb = gtk_builder_get_object (builder, "rb_ser_on");
     serial_off_rb = gtk_builder_get_object (builder, "rb_ser_off");
     if (orig_serial = (get_status (GET_SERIAL) | get_status (GET_SERIALHW))) gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (serial_off_rb), TRUE);
@@ -1344,15 +1362,23 @@ int main (int argc, char *argv[])
     gtk_widget_destroy (dlg);
 
     needs_reboot = 0;
-
-    if (gtk_dialog_run (GTK_DIALOG (main_dlg)) == GTK_RESPONSE_OK)
+    while(1)
     {
-        // check vnc password exist
-        if( gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (vnc_on_rb)) && system(VNC_PASSWD_EXIST) )
+        int main_ret = gtk_dialog_run (GTK_DIALOG (main_dlg));
+        if ( main_ret == GTK_RESPONSE_OK )
         {
-            on_change_vnc_passwd( NULL, NULL );
+            // check vnc password exist
+            if( gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (vnc_on_rb)) && system(VNC_PASSWD_EXIST) )
+            {
+                on_change_vnc_passwd( NULL, NULL );
+            }
+            if ( process_changes() ) needs_reboot = 1;
+            break;
+        } else if ( main_ret == GTK_RESPONSE_CANCEL ) {
+            break;
+        } else if ( main_ret == GTK_RESPONSE_DELETE_EVENT ) {
+            break;
         }
-        if ( process_changes() ) needs_reboot = 1;
     }
     if (needs_reboot)
     {
